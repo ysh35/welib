@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "outDir": "build",
+    "outDir": "es",
     "module": "esnext",
     "target": "es2019",
     "lib": ["esnext"],
@@ -15,6 +15,7 @@
     "suppressImplicitAnyIndexErrors": true,
     "noUnusedLocals": true,
     "strictNullChecks": true,
+    "declaration": true,
     "allowJs": true,
     "skipLibCheck": true,
     "experimentalDecorators": true,
