@@ -1,11 +1,12 @@
 {
   "name": "welib",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
-  "main": "./es/index.js",
+  "main": "./es",
   "type": "module",
-  "types": "./es/index.d.ts",
+  "types": "./es",
   "scripts": {
+    "prettier": "prettier -c --write \"**/*\"",
     "build": "tsc"
   },
   "repository": {
@@ -19,6 +20,7 @@
   },
   "homepage": "https://github.com/ysh35/welib#readme",
   "devDependencies": {
+    "@types/react": "^16.9.49",
     "prettier": "^2.1.1",
     "typescript": "^4.0.2"
   }

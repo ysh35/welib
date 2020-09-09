@@ -37,3 +37,6 @@ bitbucket-pipelines.yml
 .parcel-cache
 .lessrc
 public
+
+
+.github
