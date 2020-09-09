@@ -1,10 +1,6 @@
-// @ts-ignore
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-// @ts-ignore
-import equal from 'fast-deep-equal';
-// @ts-ignore
-import request from './request';
-const isPromise = (v) => typeof v.then === 'function';
+// import equal from 'fast-deep-equal';
+const equal = (a, b) => a === b;
 function useRequest(service, option = {}) {
     const refreshTimer = useRef(0);
     const retryTimer = useRef(0);
@@ -52,13 +48,7 @@ function useRequest(service, option = {}) {
             loading: true,
         });
         return new Promise((resolve, reject) => {
-            const serviceResult = service(...mergedArgs);
-            const promise = (isPromise(serviceResult)
-                ? serviceResult
-                : Array.isArray(serviceResult)
-                    ? request(...serviceResult)
-                    : // eslint-disable-next-line no-undef
-                        request(serviceResult));
+            const promise = service(...mergedArgs);
             promise
                 .then(res => {
                 dispatch(stateRef.current.error

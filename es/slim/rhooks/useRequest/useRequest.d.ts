@@ -1,5 +1,4 @@
-import { Options as RequestOptions } from './request';
-declare type Service<D, P extends any[]> = (...args: P) => Promise<D> | RequestInfo | [input: RequestInfo, init?: RequestInit & RequestOptions];
+declare type Service<D, P extends any[]> = (...args: P) => Promise<D>;
 interface Options<D, P extends any[]> {
     manual?: boolean;
     key?: string;

@@ -1,15 +1,10 @@
-// @ts-ignore
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-// @ts-ignore
-import equal from 'fast-deep-equal';
-// @ts-ignore
-import request, { Options as RequestOptions } from './request';
 
-// @ts-ignore
+// import equal from 'fast-deep-equal';
 
-type Service<D, P extends any[]> = (
-  ...args: P
-) => Promise<D> | RequestInfo | [input: RequestInfo, init?: RequestInit & RequestOptions];
+const equal = (a: any, b: any) => a === b;
+
+type Service<D, P extends any[]> = (...args: P) => Promise<D>;
 
 interface Options<D, P extends any[]> {
   manual?: boolean;
@@ -30,8 +25,6 @@ type Result<D, P extends any[]> = {
   error: null | Error;
   run: (...args: P) => Promise<D>;
 };
-
-const isPromise = (v: any) => typeof v.then === 'function';
 
 function useRequest<D, P extends any[] = any[]>(
   service: Service<D, P>,
@@ -90,13 +83,8 @@ function useRequest<D, P extends any[] = any[]>(
     });
 
     return new Promise((resolve, reject) => {
-      const serviceResult = service(...mergedArgs);
-      const promise = (isPromise(serviceResult)
-        ? serviceResult
-        : Array.isArray(serviceResult)
-        ? request(...serviceResult)
-        : // eslint-disable-next-line no-undef
-          request(serviceResult as RequestInfo)) as Promise<D>;
+      const promise = service(...mergedArgs);
+
       promise
         .then(res => {
           dispatch(

@@ -11,7 +11,7 @@ export default function useStore(store, selector = (s) => s, { equalFun } = { eq
             forceRender();
         });
         return () => unsubscribe();
-    }, [equalFun, selector, store]);
+    }, []);
     return selector(store.get());
 }
 //# sourceMappingURL=useStore.js.map

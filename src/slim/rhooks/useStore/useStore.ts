@@ -22,7 +22,7 @@ export default function useStore<
       forceRender();
     });
     return () => unsubscribe();
-  }, [equalFun, selector, store]);
+  }, []);
 
   return selector(store.get()) as R;
 }
