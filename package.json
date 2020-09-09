@@ -1,0 +1,23 @@
+{
+  "name": "welib",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ysh35/welib.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ysh35/welib/issues"
+  },
+  "homepage": "https://github.com/ysh35/welib#readme",
+  "devDependencies": {
+    "prettier": "^2.1.1",
+    "typescript": "^4.0.2"
+  }
+}
