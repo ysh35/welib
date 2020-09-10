@@ -5,15 +5,18 @@ type Requester = RequestInit & {
 
 type Responses<S> = Response & {
   data?: S;
-  input?: RequestInfo;
-  init?: Requester;
+  input: RequestInfo;
+  init: Requester;
 };
 
 type Payload = [input: RequestInfo, init: Requester];
 
 function _fetch([input, init]: [input: RequestInfo, init: Requester]) {
   return fetch(input, init).then(
-    (response: Response) => {
+    // @ts-ignore
+    (response: Responses<unknown>) => {
+      response.input = input;
+      response.init = init;
       return response.text().then(
         data => {
           let parsed;
@@ -46,24 +49,32 @@ function _fetch([input, init]: [input: RequestInfo, init: Requester]) {
   );
 }
 
-type Creator = {
-  baseURL?: string;
-  requestInterceptors?: Array<[(payload: Payload) => Payload, (err: Error) => Promise<never>]>;
-  responseInterceptors?: Array<
-    [
-      (payload: Responses<unknown>) => Responses<unknown>,
-      (
-        err: Error & { response: Responses<unknown> },
-      ) => Promise<never> | Promise<Responses<unknown>>,
-    ]
-  >;
-};
+export function createRequest({ baseURL }: { baseURL?: string } = {}) {
+  const _inner = {
+    chain: [_fetch, undefined] as any[],
+    baseURL,
+  };
 
-export function createRequest({
-  baseURL,
-  requestInterceptors,
-  responseInterceptors,
-}: Creator = {}) {
+  function setBaseURL(url: string) {
+    _inner.baseURL = url;
+  }
+
+  function useReqMware(
+    fulfilled: (payload: Payload) => Payload,
+    rejected: (err: Error) => Promise<never>,
+  ) {
+    _inner.chain.unshift(fulfilled, rejected);
+  }
+
+  function useResMware(
+    fulfilled: (payload: Responses<unknown>) => Responses<unknown>,
+    rejected: (
+      err: Error & { response?: Responses<unknown> },
+    ) => Promise<never> | Promise<Responses<unknown>>,
+  ) {
+    _inner.chain.push(fulfilled, rejected);
+  }
+
   function request<D>(input: RequestInfo, init?: RequestInit & { data?: any }): Promise<D>;
   function request<D>(
     input: RequestInfo,
@@ -73,39 +84,24 @@ export function createRequest({
     if (!init.headers) {
       init.headers = {};
     }
-    let ipt: RequestInfo;
 
-    if (baseURL) {
-      if (typeof input === 'string') {
-        ipt = `${baseURL}${input}`;
-      } else {
-        ipt = new Request(`${baseURL}${input.url}`);
-      }
-    } else {
-      ipt = input;
-    }
+    const ipt: RequestInfo =
+      typeof input === 'string'
+        ? input.startsWith('http')
+          ? input
+          : `${_inner.baseURL}${input}`
+        : new Request(input.url);
 
     let promise = Promise.resolve([ipt, init]);
 
-    const chain: any = [_fetch, undefined];
-
-    if (requestInterceptors?.length) {
-      requestInterceptors.forEach(interceptors => {
-        chain.unshift(interceptors[0], interceptors[1]);
-      });
-    }
-    if (responseInterceptors?.length) {
-      responseInterceptors.forEach(interceptor => {
-        chain.push(interceptor[0], interceptor[1]);
-      });
-    }
-
     if (!init.getResponse) {
-      chain.push(
+      _inner.chain.push(
         (response: Responses<unknown>) => response.data,
         (error: Error) => Promise.reject(error),
       );
     }
+
+    const chain = _inner.chain.slice(0);
 
     while (chain.length) {
       promise = promise.then(chain.shift(), chain.shift());
@@ -113,6 +109,10 @@ export function createRequest({
 
     return promise as any;
   }
+
+  request.setBaseURL = setBaseURL;
+  request.useReqMware = useReqMware;
+  request.useResMware = useResMware;
 
   return request;
 }

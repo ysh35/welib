@@ -4,21 +4,13 @@ declare type Requester = RequestInit & {
 };
 declare type Responses<S> = Response & {
     data?: S;
-    input?: RequestInfo;
-    init?: Requester;
+    input: RequestInfo;
+    init: Requester;
 };
 declare type Payload = [input: RequestInfo, init: Requester];
-declare type Creator = {
+export declare function createRequest({ baseURL }?: {
     baseURL?: string;
-    requestInterceptors?: Array<[(payload: Payload) => Payload, (err: Error) => Promise<never>]>;
-    responseInterceptors?: Array<[
-        (payload: Responses<unknown>) => Responses<unknown>,
-        (err: Error & {
-            response: Responses<unknown>;
-        }) => Promise<never> | Promise<Responses<unknown>>
-    ]>;
-};
-export declare function createRequest({ baseURL, requestInterceptors, responseInterceptors, }?: Creator): {
+}): {
     <D>(input: RequestInfo, init?: (RequestInit & {
         data?: any;
     }) | undefined): Promise<D>;
@@ -26,6 +18,11 @@ export declare function createRequest({ baseURL, requestInterceptors, responseIn
         data?: any;
         getResponse?: true | undefined;
     }) | undefined): Promise<Responses<D_1>>;
+    setBaseURL: (url: string) => void;
+    useReqMware: (fulfilled: (payload: Payload) => Payload, rejected: (err: Error) => Promise<never>) => void;
+    useResMware: (fulfilled: (payload: Responses<unknown>) => Responses<unknown>, rejected: (err: Error & {
+        response?: Responses<unknown>;
+    }) => Promise<never> | Promise<Responses<unknown>>) => void;
 };
 declare const _default: {
     <D>(input: RequestInfo, init?: (RequestInit & {
@@ -35,5 +32,10 @@ declare const _default: {
         data?: any;
         getResponse?: true | undefined;
     }) | undefined): Promise<Responses<D_1>>;
+    setBaseURL: (url: string) => void;
+    useReqMware: (fulfilled: (payload: Payload) => Payload, rejected: (err: Error) => Promise<never>) => void;
+    useResMware: (fulfilled: (payload: Responses<unknown>) => Responses<unknown>, rejected: (err: Error & {
+        response?: Responses<unknown> | undefined;
+    }) => Promise<never> | Promise<Responses<unknown>>) => void;
 };
 export default _default;

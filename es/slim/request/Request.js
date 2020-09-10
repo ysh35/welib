@@ -1,5 +1,9 @@
 function _fetch([input, init]) {
-    return fetch(input, init).then((response) => {
+    return fetch(input, init).then(
+    // @ts-ignore
+    (response) => {
+        response.input = input;
+        response.init = init;
         return response.text().then(data => {
             let parsed;
             try {
@@ -27,43 +31,42 @@ function _fetch([input, init]) {
         return Promise.reject(error);
     });
 }
-export function createRequest({ baseURL, requestInterceptors, responseInterceptors, } = {}) {
+export function createRequest({ baseURL } = {}) {
+    const _inner = {
+        chain: [_fetch, undefined],
+        baseURL,
+    };
+    function setBaseURL(url) {
+        _inner.baseURL = url;
+    }
+    function useReqMware(fulfilled, rejected) {
+        _inner.chain.unshift(fulfilled, rejected);
+    }
+    function useResMware(fulfilled, rejected) {
+        _inner.chain.push(fulfilled, rejected);
+    }
     function request(input, init = {}) {
         if (!init.headers) {
             init.headers = {};
         }
-        let ipt;
-        if (baseURL) {
-            if (typeof input === 'string') {
-                ipt = `${baseURL}${input}`;
-            }
-            else {
-                ipt = new Request(`${baseURL}${input.url}`);
-            }
-        }
-        else {
-            ipt = input;
-        }
+        const ipt = typeof input === 'string'
+            ? input.startsWith('http')
+                ? input
+                : `${_inner.baseURL}${input}`
+            : new Request(input.url);
         let promise = Promise.resolve([ipt, init]);
-        const chain = [_fetch, undefined];
-        if (requestInterceptors === null || requestInterceptors === void 0 ? void 0 : requestInterceptors.length) {
-            requestInterceptors.forEach(interceptors => {
-                chain.unshift(interceptors[0], interceptors[1]);
-            });
-        }
-        if (responseInterceptors === null || responseInterceptors === void 0 ? void 0 : responseInterceptors.length) {
-            responseInterceptors.forEach(interceptor => {
-                chain.push(interceptor[0], interceptor[1]);
-            });
-        }
         if (!init.getResponse) {
-            chain.push((response) => response.data, (error) => Promise.reject(error));
+            _inner.chain.push((response) => response.data, (error) => Promise.reject(error));
         }
+        const chain = _inner.chain.slice(0);
         while (chain.length) {
             promise = promise.then(chain.shift(), chain.shift());
         }
         return promise;
     }
+    request.setBaseURL = setBaseURL;
+    request.useReqMware = useReqMware;
+    request.useResMware = useResMware;
     return request;
 }
 export default createRequest();
