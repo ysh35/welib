@@ -22,13 +22,6 @@
     "strict": true,
     "paths": {}
   },
-  "include": [
-    "src/**/*.ts",
-    "moc/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue",
-    "tests/**/*.ts",
-    "tests/**/*.tsx"
-  ],
+  "include": ["src/**/*.ts", "moc/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
   "exclude": ["node_modules", "build", "dist", "scripts", "src/.umi/*", "webpack", "jest"]
 }
