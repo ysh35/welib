@@ -1,6 +1,7 @@
 type Requester = RequestInit & {
   data?: unknown;
   getResponse?: true;
+  timeout?: number;
 };
 
 type Responses<S> = Response & {
@@ -78,9 +79,12 @@ export function createRequest({ baseURL }: { baseURL?: string } = {}) {
   function request<D>(input: RequestInfo, init?: RequestInit & { data?: any }): Promise<D>;
   function request<D>(
     input: RequestInfo,
-    init?: RequestInit & { data?: any; getResponse?: true },
+    init?: RequestInit & { data?: any; getResponse: true },
   ): Promise<Responses<D>>;
   function request(input: any, init: any = {}) {
+    if (!init.timeout) {
+      init.timeout = 10000;
+    }
     if (!init.headers) {
       init.headers = {};
     }
@@ -94,14 +98,14 @@ export function createRequest({ baseURL }: { baseURL?: string } = {}) {
 
     let promise = Promise.resolve([ipt, init]);
 
+    const chain = _inner.chain.slice(0);
+
     if (!init.getResponse) {
-      _inner.chain.push(
+      chain.push(
         (response: Responses<unknown>) => response.data,
         (error: Error) => Promise.reject(error),
       );
     }
-
-    const chain = _inner.chain.slice(0);
 
     while (chain.length) {
       promise = promise.then(chain.shift(), chain.shift());

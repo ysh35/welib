@@ -55,10 +55,10 @@ export function createRequest({ baseURL } = {}) {
                 : `${_inner.baseURL}${input}`
             : new Request(input.url);
         let promise = Promise.resolve([ipt, init]);
-        if (!init.getResponse) {
-            _inner.chain.push((response) => response.data, (error) => Promise.reject(error));
-        }
         const chain = _inner.chain.slice(0);
+        if (!init.getResponse) {
+            chain.push((response) => response.data, (error) => Promise.reject(error));
+        }
         while (chain.length) {
             promise = promise.then(chain.shift(), chain.shift());
         }

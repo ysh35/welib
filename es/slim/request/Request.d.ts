@@ -16,7 +16,7 @@ export declare function createRequest({ baseURL }?: {
     }) | undefined): Promise<D>;
     <D_1>(input: RequestInfo, init?: (RequestInit & {
         data?: any;
-        getResponse?: true | undefined;
+        getResponse: true;
     }) | undefined): Promise<Responses<D_1>>;
     setBaseURL: (url: string) => void;
     useReqMware: (fulfilled: (payload: Payload) => Payload, rejected: (err: Error) => Promise<never>) => void;
@@ -30,7 +30,7 @@ declare const _default: {
     }) | undefined): Promise<D>;
     <D_1>(input: RequestInfo, init?: (RequestInit & {
         data?: any;
-        getResponse?: true | undefined;
+        getResponse: true;
     }) | undefined): Promise<Responses<D_1>>;
     setBaseURL: (url: string) => void;
     useReqMware: (fulfilled: (payload: Payload) => Payload, rejected: (err: Error) => Promise<never>) => void;
