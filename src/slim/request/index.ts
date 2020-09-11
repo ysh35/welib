@@ -1,4 +1,4 @@
-import request, { createRequest } from './Request';
+import request, { createRequest, RequestError, RequestResponse } from './Request';
 
-export { createRequest };
+export { createRequest, RequestError, RequestResponse };
 export default request;

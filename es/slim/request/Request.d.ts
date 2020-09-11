@@ -1,41 +1,42 @@
-declare type Requester = RequestInit & {
+export declare type RequestConfig = {
+    baseURL?: string;
+    timeout?: number;
+};
+export declare type RequestOptions = RequestInit & {
     data?: unknown;
     getResponse?: true;
+    timeout?: number;
+    abortController?: AbortController;
 };
-declare type Responses<S> = Response & {
+export declare type RequestResponse<S = unknown> = Response & {
     data?: S;
-    input: RequestInfo;
-    init: Requester;
+    options: RequestOptions;
 };
-declare type Payload = [input: RequestInfo, init: Requester];
-export declare function createRequest({ baseURL }?: {
-    baseURL?: string;
-}): {
-    <D>(input: RequestInfo, init?: (RequestInit & {
-        data?: any;
-    }) | undefined): Promise<D>;
-    <D_1>(input: RequestInfo, init?: (RequestInit & {
-        data?: any;
+export declare type RequestError = Error & {
+    response?: RequestResponse;
+    isAbortError?: boolean;
+    isTimeoutError?: boolean;
+};
+export declare function createRequest(_conf?: Partial<RequestConfig>): {
+    <D>(url: string, options?: Pick<RequestOptions, "timeout" | "body" | "cache" | "credentials" | "headers" | "integrity" | "keepalive" | "method" | "mode" | "redirect" | "referrer" | "referrerPolicy" | "signal" | "window" | "data" | "abortController"> | undefined): Promise<D>;
+    <D_1>(url: string, options?: (Pick<RequestOptions, "timeout" | "body" | "cache" | "credentials" | "headers" | "integrity" | "keepalive" | "method" | "mode" | "redirect" | "referrer" | "referrerPolicy" | "signal" | "window" | "data" | "abortController"> & {
         getResponse: true;
-    }) | undefined): Promise<Responses<D_1>>;
-    setBaseURL: (url: string) => void;
-    useReqMware: (fulfilled: (payload: Payload) => Payload, rejected: (err: Error) => Promise<never>) => void;
-    useResMware: (fulfilled: (payload: Responses<unknown>) => Responses<unknown>, rejected: (err: Error & {
-        response?: Responses<unknown>;
-    }) => Promise<never> | Promise<Responses<unknown>>) => void;
+    }) | undefined): Promise<RequestResponse<D_1>>;
+    config: (_conf?: Partial<RequestConfig>) => void;
+    useReqMware: (fulfilled: (request: [url: string, options: RequestOptions]) => [url: string, options: RequestOptions], rejected: (err: Error) => Promise<never>) => void;
+    useResMware: (fulfilled: (response: RequestResponse) => RequestResponse, rejected: (err: Error & {
+        response?: RequestResponse;
+    }) => Promise<never> | Promise<RequestResponse>) => void;
 };
 declare const _default: {
-    <D>(input: RequestInfo, init?: (RequestInit & {
-        data?: any;
-    }) | undefined): Promise<D>;
-    <D_1>(input: RequestInfo, init?: (RequestInit & {
-        data?: any;
+    <D>(url: string, options?: Pick<RequestOptions, "timeout" | "body" | "cache" | "credentials" | "headers" | "integrity" | "keepalive" | "method" | "mode" | "redirect" | "referrer" | "referrerPolicy" | "signal" | "window" | "data" | "abortController"> | undefined): Promise<D>;
+    <D_1>(url: string, options?: (Pick<RequestOptions, "timeout" | "body" | "cache" | "credentials" | "headers" | "integrity" | "keepalive" | "method" | "mode" | "redirect" | "referrer" | "referrerPolicy" | "signal" | "window" | "data" | "abortController"> & {
         getResponse: true;
-    }) | undefined): Promise<Responses<D_1>>;
-    setBaseURL: (url: string) => void;
-    useReqMware: (fulfilled: (payload: Payload) => Payload, rejected: (err: Error) => Promise<never>) => void;
-    useResMware: (fulfilled: (payload: Responses<unknown>) => Responses<unknown>, rejected: (err: Error & {
-        response?: Responses<unknown> | undefined;
-    }) => Promise<never> | Promise<Responses<unknown>>) => void;
+    }) | undefined): Promise<RequestResponse<D_1>>;
+    config: (_conf?: Partial<RequestConfig>) => void;
+    useReqMware: (fulfilled: (request: [url: string, options: RequestOptions]) => [url: string, options: RequestOptions], rejected: (err: Error) => Promise<never>) => void;
+    useResMware: (fulfilled: (response: RequestResponse<unknown>) => RequestResponse<unknown>, rejected: (err: Error & {
+        response?: RequestResponse<unknown> | undefined;
+    }) => Promise<never> | Promise<RequestResponse<unknown>>) => void;
 };
 export default _default;

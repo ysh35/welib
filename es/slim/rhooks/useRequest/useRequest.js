@@ -1,107 +1,148 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 // import equal from 'fast-deep-equal';
 const equal = (a, b) => a === b;
+const IS_SERVER = typeof window === 'undefined';
+function isDocumentVisible() {
+    if (typeof document !== 'undefined' && typeof document.visibilityState !== 'undefined') {
+        return document.visibilityState !== 'hidden';
+    }
+    // always assume it's visible
+    return true;
+}
+function isOnline() {
+    if (typeof navigator.onLine !== 'undefined') {
+        return navigator.onLine;
+    }
+    // always assume it's online
+    return true;
+}
 function useRequest(service, option = {}) {
-    const refreshTimer = useRef(0);
-    const retryTimer = useRef(0);
-    const unmountedRef = useRef(false);
+    // merged options
     const _options = {
         params: [],
+        deps: [],
+        shouldRetryOnError: true,
         retryDelay: 5000,
+        retryCount: 5,
         ...option,
     };
     const refParams = useRef(_options.params);
-    const depRef = useRef({
+    const refStates = useRef({
+        data: _options.initial,
+        loading: !_options.manual,
+        error: undefined,
+    });
+    const refDependencies = useRef({
         data: false,
         loading: false,
         error: false,
     });
-    useEffect(() => {
-        refParams.current = _options.params;
-    }, _options.params);
-    const stateRef = useRef({
-        data: _options.initial,
-        loading: !_options.manual,
-        error: null,
-    });
+    const refreshTimer = useRef(0);
+    const retryTimer = useRef(0);
+    const refRetryCount = useRef(_options.retryCount);
+    const refMounted = useRef(false);
+    const refUnmounted = useRef(false);
     const rerender = useState(null)[1];
     const dispatch = useCallback((payload) => {
         let shouldUpdateState = false;
         const eq = option.equalFun || equal;
         for (const k in payload) {
-            if (!eq(stateRef.current[k], payload[k])) {
-                stateRef.current[k] = payload[k];
-                if (depRef.current[k]) {
+            if (!eq(refStates.current[k], payload[k])) {
+                refStates.current[k] = payload[k];
+                if (refDependencies.current[k]) {
                     shouldUpdateState = true;
                 }
             }
         }
         if (shouldUpdateState) {
-            if (unmountedRef.current)
+            if (refUnmounted.current)
                 return;
             rerender({});
         }
     }, []);
+    const clearTimer = useCallback(() => {
+        // clear all timers
+        if (refreshTimer.current) {
+            clearTimeout(refreshTimer.current);
+            refreshTimer.current = 0;
+        }
+        if (retryTimer.current) {
+            clearTimeout(retryTimer.current);
+            retryTimer.current = 0;
+        }
+    }, []);
+    const tryRefreshOrRetry = useCallback(() => {
+        clearTimer();
+        if (!isOnline() || !isDocumentVisible()) {
+            // console.log('offline or hidden and will not Refresh or Retry');
+            return;
+        }
+        if (_options.refreshInterval) {
+            // console.info(`will refresh with ${error ? 'error' : 'success'}...`);
+            refreshTimer.current = setTimeout(() => {
+                return run(...refParams.current);
+            }, _options.refreshInterval);
+            return;
+        }
+        if (refStates.current.error &&
+            _options.shouldRetryOnError &&
+            refRetryCount.current > 0 &&
+            (refStates.current.error.name === 'AbortError'
+                ? refStates.current.error.isTimeoutError
+                : true) &&
+            (_options.retryOn ? _options.retryOn(refStates.current.error) : true)) {
+            // console.info('will retry with error...');
+            retryTimer.current = setTimeout(() => {
+                return run(...refParams.current);
+            }, _options.retryDelay);
+            refRetryCount.current -= 1;
+        }
+    }, []);
     const run = (...args) => {
-        const mergedArgs = args.length > 0 ? args : refParams.current;
+        clearTimer();
+        if (args) {
+            refParams.current = args;
+        }
         dispatch({
             loading: true,
         });
-        return new Promise((resolve, reject) => {
-            const promise = service(...mergedArgs);
-            promise
-                .then(res => {
-                dispatch(stateRef.current.error
-                    ? {
-                        loading: false,
-                        data: res,
-                        error: null,
-                    }
-                    : {
-                        loading: false,
-                        data: res,
-                    });
-                if (option.refreshInterval) {
-                    if (refreshTimer.current) {
-                        clearTimeout(refreshTimer.current);
-                    }
-                    refreshTimer.current = setTimeout(() => {
-                        return run(...args);
-                    }, _options.refreshInterval);
-                }
-                return resolve(res);
-            })
-                .catch(error => {
-                var _a;
-                if (refreshTimer.current) {
-                    clearTimeout(refreshTimer.current);
-                }
-                if (retryTimer.current) {
-                    clearTimeout(retryTimer.current);
-                }
-                dispatch({
+        return service(...refParams.current)
+            .then(data => {
+            if (_options.onSuccess) {
+                _options.onSuccess(data);
+            }
+            dispatch(refStates.current.error
+                ? {
                     loading: false,
-                    error,
+                    data,
+                    error: null,
+                }
+                : {
+                    loading: false,
+                    data,
                 });
-                if (_options.onError) {
-                    _options.onError(error);
-                }
-                if (_options.retryOn && _options.retryOn(error)) {
-                    retryTimer.current = setTimeout(() => {
-                        return run(...args);
-                    }, _options.retryDelay);
-                }
-                else if (((_a = error.response) === null || _a === void 0 ? void 0 : _a.status) >= 500) {
-                    // @ts-ignore
-                    retryTimer.current = setTimeout(() => {
-                        return run(...args);
-                    }, _options.retryDelay);
-                }
-                // return reject(error);
+            tryRefreshOrRetry();
+            return Promise.resolve(data);
+        })
+            .catch(error => {
+            if (_options.onError) {
+                _options.onError(error);
+            }
+            dispatch({
+                loading: false,
+                error,
             });
+            tryRefreshOrRetry();
+            // return Promise.reject(error);
         });
     };
+    // sync params
     useEffect(() => {
+        refParams.current = _options.params;
+    }, _options.params);
+    // initialize
+    useEffect(() => {
+        refParams.current = _options.params;
         if (!_options.manual) {
             run(...refParams.current)
                 .then()
@@ -109,10 +150,30 @@ function useRequest(service, option = {}) {
                 console.error(e);
             });
         }
+        if (!IS_SERVER && window.addEventListener) {
+            window.addEventListener('visibilitychange', tryRefreshOrRetry, false);
+        }
         return () => {
-            unmountedRef.current = true;
+            if (!IS_SERVER && window.addEventListener) {
+                window.removeEventListener('visibilitychange', tryRefreshOrRetry);
+            }
+            refUnmounted.current = true;
         };
     }, []);
+    // listen deps change
+    useEffect(() => {
+        if (refMounted.current) {
+            run(...refParams.current)
+                .then()
+                .catch(e => {
+                console.error(e);
+            });
+        }
+        else {
+            refMounted.current = true;
+        }
+    }, _options.deps);
+    // return result
     return useMemo(() => {
         const derived = {
             run,
@@ -120,22 +181,22 @@ function useRequest(service, option = {}) {
         Object.defineProperties(derived, {
             error: {
                 get: function () {
-                    depRef.current.error = true;
-                    return stateRef.current.error;
+                    refDependencies.current.error = true;
+                    return refStates.current.error;
                 },
                 enumerable: true,
             },
             data: {
                 get: function () {
-                    depRef.current.data = true;
-                    return stateRef.current.data;
+                    refDependencies.current.data = true;
+                    return refStates.current.data;
                 },
                 enumerable: true,
             },
             loading: {
                 get: function () {
-                    depRef.current.loading = true;
-                    return stateRef.current.loading;
+                    refDependencies.current.loading = true;
+                    return refStates.current.loading;
                 },
                 enumerable: true,
             },

@@ -4,11 +4,14 @@ interface Options<D, P extends any[]> {
     key?: string;
     initial?: D;
     params?: P;
+    deps?: any[];
     refreshInterval?: number;
     onError?: (error: Error) => any;
     onSuccess?: (data: D) => any;
-    retryDelay?: number;
+    shouldRetryOnError?: boolean;
     retryOn?: (error: Error) => boolean;
+    retryCount?: number;
+    retryDelay?: number;
     equalFun?: (a: D, b: D) => boolean;
 }
 declare type Result<D, P extends any[]> = {

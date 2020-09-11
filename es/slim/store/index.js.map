@@ -1,1 +1,1 @@
-{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../src/slim/store/index.ts"],"names":[],"mappings":"AAAA,OAAO,WAAuB,MAAM,SAAS,CAAC;AAG9C,eAAe,WAAW,CAAC"}
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../src/slim/store/index.ts"],"names":[],"mappings":"AAAA,OAAO,WAAuB,MAAM,SAAS,CAAC;AAC9C,OAAO,kBAAkB,MAAM,gBAAgB,CAAC;AAGhD,OAAO,EAAE,kBAAkB,EAAE,CAAC;AAC9B,eAAe,WAAW,CAAC"}

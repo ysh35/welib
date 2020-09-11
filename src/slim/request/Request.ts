@@ -1,23 +1,64 @@
-type Requester = RequestInit & {
-  data?: unknown;
-  getResponse?: true;
+export type RequestConfig = {
+  baseURL?: string;
   timeout?: number;
 };
 
-type Responses<S> = Response & {
-  data?: S;
-  input: RequestInfo;
-  init: Requester;
+export type RequestOptions = RequestInit & {
+  data?: unknown;
+  getResponse?: true;
+  timeout?: number;
+  abortController?: AbortController;
 };
 
-type Payload = [input: RequestInfo, init: Requester];
+export type RequestResponse<S = unknown> = Response & {
+  data?: S;
+  options: RequestOptions;
+};
 
-function _fetch([input, init]: [input: RequestInfo, init: Requester]) {
-  return fetch(input, init).then(
+export type RequestError = Error & {
+  response?: RequestResponse;
+  isAbortError?: boolean;
+  isTimeoutError?: boolean;
+};
+
+function _fetch([url, options]: [url: string, options: RequestOptions]) {
+  let timer = 0;
+  let abortController = options.abortController;
+  let signal = options.signal;
+
+  // if timeout
+  if (options.timeout) {
+    // initialize signal
+    if (!signal) {
+      abortController = new AbortController();
+      signal = abortController.signal;
+    }
+
+    // if abortController
+    if (abortController) {
+      timer = (setTimeout(() => {
+        clearTimeout(timer);
+        timer = 0;
+        abortController!.abort();
+      }, options.timeout) as unknown) as number;
+    }
+  }
+
+  // rebind abort and signal to options
+  options.abortController = abortController;
+  options.signal = signal;
+
+  // native fetch
+  return fetch(url, options).then(
     // @ts-ignore
-    (response: Responses<unknown>) => {
-      response.input = input;
-      response.init = init;
+    (response: RequestResponse) => {
+      // clear timeout timer
+      if (timer) {
+        clearTimeout(timer);
+        timer = 0;
+      }
+
+      response.options = options;
       return response.text().then(
         data => {
           let parsed;
@@ -45,76 +86,91 @@ function _fetch([input, init]: [input: RequestInfo, init: Requester]) {
       );
     },
     error => {
+      if (error.name === 'AbortError') {
+        error.isAbortError = true;
+        // check if abort by cancel or timeout
+        error.isTimeoutError = options.abortController ? !timer : false;
+      }
+
+      // clear timeout timer
+      if (timer) {
+        clearTimeout(timer);
+        timer = 0;
+      }
       return Promise.reject(error);
     },
   );
 }
 
-export function createRequest({ baseURL }: { baseURL?: string } = {}) {
+export function createRequest(_conf: Partial<RequestConfig> = {}) {
   const _inner = {
     chain: [_fetch, undefined] as any[],
-    baseURL,
+    config: _conf,
   };
 
-  function setBaseURL(url: string) {
-    _inner.baseURL = url;
+  function config(_conf: Partial<RequestConfig> = {}) {
+    _inner.config = {
+      ..._inner.config,
+      ..._conf,
+    };
   }
 
   function useReqMware(
-    fulfilled: (payload: Payload) => Payload,
+    fulfilled: (
+      request: [url: string, options: RequestOptions],
+    ) => [url: string, options: RequestOptions],
     rejected: (err: Error) => Promise<never>,
   ) {
     _inner.chain.unshift(fulfilled, rejected);
   }
 
   function useResMware(
-    fulfilled: (payload: Responses<unknown>) => Responses<unknown>,
+    fulfilled: (response: RequestResponse) => RequestResponse,
     rejected: (
-      err: Error & { response?: Responses<unknown> },
-    ) => Promise<never> | Promise<Responses<unknown>>,
+      err: Error & { response?: RequestResponse },
+    ) => Promise<never> | Promise<RequestResponse>,
   ) {
     _inner.chain.push(fulfilled, rejected);
   }
 
-  function request<D>(input: RequestInfo, init?: RequestInit & { data?: any }): Promise<D>;
+  function request<D>(url: string, options?: Omit<RequestOptions, 'getResponse'>): Promise<D>;
   function request<D>(
-    input: RequestInfo,
-    init?: RequestInit & { data?: any; getResponse: true },
-  ): Promise<Responses<D>>;
-  function request(input: any, init: any = {}) {
-    if (!init.timeout) {
-      init.timeout = 10000;
-    }
-    if (!init.headers) {
-      init.headers = {};
+    url: string,
+    options?: Omit<RequestOptions, 'getResponse'> & { getResponse: true },
+  ): Promise<RequestResponse<D>>;
+  function request(url: string, options: RequestOptions = {}): any {
+    // provide timeout from config
+    if (!options.timeout) {
+      options.timeout = _inner.config.timeout;
     }
 
-    const ipt: RequestInfo =
-      typeof input === 'string'
-        ? input.startsWith('http')
-          ? input
-          : `${_inner.baseURL}${input}`
-        : new Request(input.url);
+    // request promise
+    let promise = Promise.resolve([
+      // provide baseURL from config to relative url
+      url.startsWith('http') ? url : `${_inner.config.baseURL}${url}`,
+      options,
+    ]);
 
-    let promise = Promise.resolve([ipt, init]);
-
+    // copy chain
     const chain = _inner.chain.slice(0);
 
-    if (!init.getResponse) {
+    // if need to resolve response
+    if (!options.getResponse) {
       chain.push(
-        (response: Responses<unknown>) => response.data,
+        (response: RequestResponse) => response.data,
         (error: Error) => Promise.reject(error),
       );
     }
 
+    // pipe to every interceptors
     while (chain.length) {
       promise = promise.then(chain.shift(), chain.shift());
     }
 
-    return promise as any;
+    return promise;
   }
 
-  request.setBaseURL = setBaseURL;
+  request.config = config;
   request.useReqMware = useReqMware;
   request.useResMware = useResMware;
 
