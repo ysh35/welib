@@ -25,6 +25,8 @@ export default function createUseStore<
   ) {
     return useStore(store, selector, { equalFun });
   }
+
   createdUseStore.store = store;
+  Object.assign(createdUseStore, store);
   return createdUseStore;
 }

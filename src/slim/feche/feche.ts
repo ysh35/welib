@@ -63,8 +63,9 @@ export class Feche {
   feche<D>(url: string, options?: Omit<FecheOptions, 'getResponse'>): Promise<D>;
   feche<D>(url: string, options: any = {}): any {
     const fecheInstanceOptions: FecheInstanceOptions = {
-      url: options.url || url,
       ..._defaultOptions,
+      ...options,
+      url: options.url || url,
     };
 
     let promise = Promise.resolve(fecheInstanceOptions);
