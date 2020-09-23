@@ -3,11 +3,12 @@
   "version": "1.0.2",
   "description": "",
   "main": "./es",
-  "type": "module",
   "types": "./es",
   "scripts": {
     "prettier": "prettier -c --write \"**/*\"",
-    "build": "tsc"
+    "build": "tsc",
+    "dev": "vite",
+    "build:demo": "vite build"
   },
   "repository": {
     "type": "git",
@@ -19,9 +20,17 @@
     "url": "https://github.com/ysh35/welib/issues"
   },
   "homepage": "https://github.com/ysh35/welib#readme",
+  "dependencies": {
+    "@pika/react": "^16.13.1",
+    "@pika/react-dom": "^16.13.1",
+    "nats.ws": "^1.0.0-106",
+    "react-icons": "^3.11.0"
+  },
   "devDependencies": {
     "@types/react": "^16.9.49",
     "prettier": "^2.1.1",
-    "typescript": "^4.0.2"
+    "typescript": "^4.0.2",
+    "vite": "^1.0.0-rc.4",
+    "vite-plugin-react": "^3.0.2"
   }
 }

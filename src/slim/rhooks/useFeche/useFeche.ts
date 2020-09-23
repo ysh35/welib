@@ -1,4 +1,4 @@
-import { FecheOptions, FecheResponse } from '../../feche/types';
+import { FecheError, FecheOptions, FecheResponse } from '../../feche/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { equal, IS_SERVER, isDocumentVisible, isOnline } from '../useFetch/utils';
 import feche from '../../feche/feche';
@@ -28,8 +28,8 @@ export interface Options<D, P extends any[]> {
 
   refreshInterval?: number;
 
-  onError?: (error?: Error) => any;
-  onSuccess?: (data?: D) => any;
+  onError?: (error?: FecheError) => any;
+  onSuccess?: (res?: FecheResponse) => any;
 
   shouldRetryOnError?: boolean;
   retryOn?: (error: Error) => boolean;
@@ -166,22 +166,22 @@ export default function useFetch<
       )
       .then(res => {
         if (_options.onSuccess) {
-          _options.onSuccess(res.data);
+          _options.onSuccess(res);
         }
         dispatch(
           refStates.current.error
             ? {
                 loading: false,
-                data,
+                data: res.data,
                 error: null,
               }
             : {
                 loading: false,
-                data,
+                data: res.data,
               },
         );
         tryRefreshOrRetry();
-        return Promise.resolve(data);
+        return Promise.resolve(res);
       })
       .catch(error => {
         if (_options.onError) {
@@ -268,3 +268,5 @@ export default function useFetch<
     return derived;
   }, []);
 }
+
+useFetch.config = config;
